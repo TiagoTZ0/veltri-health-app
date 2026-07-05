@@ -38,14 +38,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const inAuthGroup = (segments[0] as string) === '(auth)';
 
     if (!token && !inAuthGroup) {
       // Redirect to the sign-in page.
-      router.replace('/(auth)/login');
+      router.replace('/(auth)/login' as any);
     } else if (token && inAuthGroup) {
       // Redirect away from the sign-in page.
-      router.replace('/(tabs)/');
+      router.replace('/(tabs)' as any);
     }
   }, [token, segments, isLoading]);
 

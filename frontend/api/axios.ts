@@ -80,7 +80,7 @@ api.interceptors.response.use(
         // Si el refresh también falla, cerrar sesión
         await SecureStore.deleteItemAsync('access_token');
         await SecureStore.deleteItemAsync('refresh_token');
-        router.replace('/(auth)/login');
+        router.replace('/login' as any);
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

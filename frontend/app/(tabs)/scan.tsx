@@ -88,8 +88,9 @@ export default function ScanScreen() {
         costo_estimado: scanResult.economics?.base_price * (parseFloat(gramos) / 1000)
       });
       Alert.alert('Éxito', `Alimento guardado en ${tipoComida}`);
-      router.replace('/(tabs)/');
+      router.replace('/');
     } catch (error) {
+      console.log(error);
       Alert.alert('Error', 'No se pudo guardar el registro');
     } finally {
       setSaving(false);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
-import { Link as ExpoRouterLink } from 'expo-router';
+import { Link } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api/axios';
@@ -34,6 +34,7 @@ export default function LoginScreen() {
         await login(access);
       }
     } catch (error) {
+      console.log(error);
       Alert.alert('Error', 'Credenciales incorrectas');
     } finally {
       setLoading(false);
@@ -78,11 +79,12 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>¿No tienes una cuenta? </Text>
-          <ExpoRouterLink href="/(auth)/register" asChild>
+          {/* @ts-ignore */}
+          <Link href="/register" asChild>
             <TouchableOpacity>
               <Text style={styles.linkText}>Regístrate</Text>
             </TouchableOpacity>
-          </ExpoRouterLink>
+          </Link>
         </View>
       </View>
     </KeyboardAvoidingView>

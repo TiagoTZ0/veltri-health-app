@@ -1,0 +1,12 @@
+# Model weights (too large for git, use Git LFS or download separately)
+*.pth
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db

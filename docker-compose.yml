@@ -12,6 +12,18 @@ services:
     ports:
       - "5432:5432"
 
+  ai:
+    build: ./ai-service
+    volumes:
+      - ./ai-service/models:/app/models
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   web:
     build: ./backend
     command: /app/entrypoint.sh
@@ -26,17 +38,10 @@ services:
       - DB_NAME=veltri_db
       - DB_USER=veltri_user
       - DB_PASSWORD=veltri_pass
-      # El ML mock está en el host (localhost del host = host.docker.internal para Mac/Windows)
-      - ML_API_URL=http://host.docker.internal:8001/predict/
+      - ML_API_URL=http://ai:8001/predict/
     depends_on:
       - db
-
-  # Si tienes un servicio ML en el futuro, se puede descomentar esto:
-  # ml_mock:
-  #   image: python:3.11-slim
-  #   command: python -m http.server 8001
-  #   ports:
-  #     - "8001:8001"
+      - ai
 
 volumes:
   postgres_data:

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView } from 'react-native';
-import { Link as ExpoRouterLink, useRouter } from 'react-router-native'; // actually expo-router
-import { Link as ExpoRouterLink2 } from 'expo-router'; // expo-router provides Link
+import { Link } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api/axios';
 
@@ -114,11 +113,12 @@ export default function RegisterScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>¿Ya tienes una cuenta? </Text>
-          <ExpoRouterLink2 href="/(auth)/login" asChild>
+          {/* @ts-ignore */}
+          <Link href="/login" asChild>
             <TouchableOpacity>
               <Text style={styles.linkText}>Inicia Sesión</Text>
             </TouchableOpacity>
-          </ExpoRouterLink2>
+          </Link>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

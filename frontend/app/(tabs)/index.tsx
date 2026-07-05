@@ -10,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -19,13 +21,13 @@ export default function DiarioScreen() {
 
   React.useEffect(() => {
     (async () => {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+      const perms = await Notifications.getPermissionsAsync() as any;
+      let finalGranted = perms.granted || perms.status === 'granted';
+      if (!finalGranted) {
+        const req = await Notifications.requestPermissionsAsync() as any;
+        finalGranted = req.granted || req.status === 'granted';
       }
-      if (finalStatus === 'granted') {
+      if (finalGranted) {
         // Programar recordatorio de agua cada 2 horas si no hay ya uno
         const scheduled = await Notifications.getAllScheduledNotificationsAsync();
         if (scheduled.length === 0) {
@@ -48,6 +50,7 @@ export default function DiarioScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchStats(selectedDate);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate])
   );
 
@@ -218,7 +221,7 @@ export default function DiarioScreen() {
                   <Ionicons name="camera" size={20} color="#00D09E" />
                   <Text style={styles.addFoodText}>Escáner IA</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.addFoodBtn, { marginLeft: 15 }]} onPress={() => router.push({ pathname: '/search', params: { meal } })}>
+                <TouchableOpacity style={[styles.addFoodBtn, { marginLeft: 15 }]} onPress={() => router.push({ pathname: '/search' as any, params: { meal } })}>
                   <Ionicons name="search" size={20} color="#6B7280" />
                   <Text style={[styles.addFoodText, { color: '#6B7280' }]}>Buscar</Text>
                 </TouchableOpacity>

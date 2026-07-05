@@ -8,7 +8,7 @@ import os
 import requests
 from diets.models import CatalogoAlimento
 
-AI_MICROSERVICE_URL = "http://localhost:8001/predict/"
+AI_MICROSERVICE_URL = os.environ.get("ML_API_URL", "http://localhost:8001/predict/")
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

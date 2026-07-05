@@ -1,0 +1,16 @@
+# ============================================================
+# Veltri AI Service - Inference only
+# ============================================================
+# PyTorch CPU (para producción/Docker - más liviano)
+# Si necesitas GPU, cambia a: --index-url https://download.pytorch.org/whl/cu128
+torch
+torchvision
+
+# API
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Utilities
+numpy
+Pillow
