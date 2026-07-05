@@ -1,33 +1,116 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import api from '@/api/axios';
+import * as Notifications from 'expo-notifications';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api/diets';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function DiarioScreen() {
   const [stats, setStats] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
-  useEffect(() => {
-    fetchStats();
+  React.useEffect(() => {
+    (async () => {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus === 'granted') {
+        // Programar recordatorio de agua cada 2 horas si no hay ya uno
+        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+        if (scheduled.length === 0) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: '¡Hora de hidratarte! 💧',
+              body: 'Toma un vaso de agua para mantenerte saludable y cumplir tu meta.',
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+              seconds: 60 * 60 * 2, // 2 horas
+              repeats: true,
+            },
+          });
+        }
+      }
+    })();
   }, []);
 
-  const fetchStats = async () => {
+  useFocusEffect(
+    useCallback(() => {
+      fetchStats(selectedDate);
+    }, [selectedDate])
+  );
+
+  const formatDateParam = (date: Date) => date.toISOString().split('T')[0];
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  const getDateLabel = (date: Date) => {
+    if (isToday(date)) return 'Hoy';
+    return date.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  const goToPrevDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(d);
+  };
+
+  const goToNextDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 1);
+    // No permitir ir al futuro
+    if (d <= new Date()) setSelectedDate(d);
+  };
+
+  const fetchStats = async (date: Date = selectedDate) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/stats/`);
-      const data = await response.json();
-      setStats(data);
+      const dateParam = formatDateParam(date);
+      const response = await api.get(`/api/tracker/daily-stats/?date=${dateParam}`);
+      setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
   };
 
-  const macros = { carbs: 120, protein: 85, fat: 40 }; // Mocked macros
-  const totalCalories = stats?.calorias_consumidas_hoy || 0;
+  const addWater = async () => {
+    try {
+      await api.post('/api/tracker/log-water/', { cantidad_ml: 250 });
+      fetchStats(); // recargar
+    } catch (error) {
+      console.error('Error log water:', error);
+    }
+  };
+
+  const macros = stats?.macros_consumidos_hoy || { carbohidratos: 0, proteinas: 0, grasas: 0 };
+  const totalCalories = Math.round(stats?.calorias_consumidas_hoy || 0);
   const goalCalories = stats?.calorias_meta || 2000;
   const remaining = goalCalories - totalCalories;
-  
   const progressPercentage = Math.min(100, (totalCalories / goalCalories) * 100);
+
+  // Metas de macros (del backend o valores por defecto nutritivos estándar)
+  const macroGoals = {
+    carbohidratos: stats?.metas_macros?.carbohidratos || 200,
+    proteinas: stats?.metas_macros?.proteinas || 120,
+    grasas: stats?.metas_macros?.grasas || 65,
+  };
+  const carboPct = Math.min(100, macroGoals.carbohidratos > 0 ? (macros.carbohidratos / macroGoals.carbohidratos) * 100 : 0);
+  const proteinPct = Math.min(100, macroGoals.proteinas > 0 ? (macros.proteinas / macroGoals.proteinas) * 100 : 0);
+  const fatPct = Math.min(100, macroGoals.grasas > 0 ? (macros.grasas / macroGoals.grasas) * 100 : 0);
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -36,11 +119,11 @@ export default function DiarioScreen() {
         
         {/* Header - Fechas */}
         <View style={styles.header}>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={goToPrevDay}>
             <Ionicons name="chevron-back" size={24} color="#111827" />
           </TouchableOpacity>
-          <Text style={styles.dateText}>Hoy</Text>
-          <TouchableOpacity>
+          <Text style={styles.dateText}>{getDateLabel(selectedDate)}</Text>
+          <TouchableOpacity onPress={goToNextDay} style={{ opacity: isToday(selectedDate) ? 0.3 : 1 }}>
             <Ionicons name="chevron-forward" size={24} color="#111827" />
           </TouchableOpacity>
         </View>
@@ -76,25 +159,50 @@ export default function DiarioScreen() {
             <View style={styles.macroBox}>
               <Text style={styles.macroTitle}>Carbohidratos</Text>
               <View style={[styles.macroBarBg, { backgroundColor: '#E0F2FE' }]}>
-                <View style={[styles.macroBarFill, { width: '60%', backgroundColor: '#0EA5E9' }]} />
+                <View style={[styles.macroBarFill, { width: `${carboPct}%`, backgroundColor: '#0EA5E9' }]} />
               </View>
-              <Text style={styles.macroValue}>{macros.carbs}g / 200g</Text>
+              <Text style={styles.macroValue}>{Math.round(macros.carbohidratos)}g / {macroGoals.carbohidratos}g</Text>
             </View>
             <View style={styles.macroBox}>
               <Text style={styles.macroTitle}>Proteínas</Text>
               <View style={[styles.macroBarBg, { backgroundColor: '#FCE7F3' }]}>
-                <View style={[styles.macroBarFill, { width: '75%', backgroundColor: '#EC4899' }]} />
+                <View style={[styles.macroBarFill, { width: `${proteinPct}%`, backgroundColor: '#EC4899' }]} />
               </View>
-              <Text style={styles.macroValue}>{macros.protein}g / 120g</Text>
+              <Text style={styles.macroValue}>{Math.round(macros.proteinas)}g / {macroGoals.proteinas}g</Text>
             </View>
             <View style={styles.macroBox}>
               <Text style={styles.macroTitle}>Grasas</Text>
               <View style={[styles.macroBarBg, { backgroundColor: '#FEF3C7' }]}>
-                <View style={[styles.macroBarFill, { width: '45%', backgroundColor: '#F59E0B' }]} />
+                <View style={[styles.macroBarFill, { width: `${fatPct}%`, backgroundColor: '#F59E0B' }]} />
               </View>
-              <Text style={styles.macroValue}>{macros.fat}g / 65g</Text>
+              <Text style={styles.macroValue}>{Math.round(macros.grasas)}g / {macroGoals.grasas}g</Text>
             </View>
           </View>
+        </View>
+
+        {/* Tracking de Agua */}
+        <View style={styles.waterCard}>
+          <View style={styles.waterHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="water" size={24} color="#3B82F6" />
+              <Text style={styles.waterTitle}>Agua</Text>
+            </View>
+            <Text style={styles.waterSubtitle}>{stats?.vasos_agua || 0} de 8 vasos</Text>
+          </View>
+          <View style={styles.waterDrops}>
+            {[...Array(8)].map((_, i) => (
+              <Ionicons 
+                key={i} 
+                name={i < (stats?.vasos_agua || 0) ? "water" : "water-outline"} 
+                size={28} 
+                color={i < (stats?.vasos_agua || 0) ? "#3B82F6" : "#D1D5DB"} 
+              />
+            ))}
+          </View>
+          <TouchableOpacity style={styles.addWaterBtn} onPress={addWater}>
+            <Ionicons name="add" size={20} color="#FFFFFF" />
+            <Text style={styles.addWaterText}>Añadir Vaso (250ml)</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Comidas */}
@@ -105,13 +213,20 @@ export default function DiarioScreen() {
                 <Text style={styles.mealTitle}>{meal}</Text>
                 <Text style={styles.mealKcal}>0 kcal</Text>
               </View>
-              <TouchableOpacity style={styles.addFoodBtn} onPress={() => router.push('/scan')}>
-                <Ionicons name="add-circle" size={24} color="#00D09E" />
-                <Text style={styles.addFoodText}>Agregar Alimento con IA</Text>
-              </TouchableOpacity>
+              <View style={styles.mealActions}>
+                <TouchableOpacity style={styles.addFoodBtn} onPress={() => router.push({ pathname: '/scan', params: { meal } })}>
+                  <Ionicons name="camera" size={20} color="#00D09E" />
+                  <Text style={styles.addFoodText}>Escáner IA</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.addFoodBtn, { marginLeft: 15 }]} onPress={() => router.push({ pathname: '/search', params: { meal } })}>
+                  <Ionicons name="search" size={20} color="#6B7280" />
+                  <Text style={[styles.addFoodText, { color: '#6B7280' }]}>Buscar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))}
         </View>
+
         
       </ScrollView>
     </SafeAreaView>
@@ -123,6 +238,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
     paddingTop: Platform.OS === 'android' ? 25 : 0,
+  },
+  waterCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 3,
+  },
+  waterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  waterTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#374151',
+    marginLeft: 8,
+  },
+  waterSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  waterDrops: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  addWaterBtn: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  addWaterText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
+    marginLeft: 8,
+  },
+  mealActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   container: {
     flex: 1,

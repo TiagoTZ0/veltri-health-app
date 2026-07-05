@@ -1,15 +1,43 @@
-import React from 'react';
-import { StyleSheet, View, Text, ScrollView, SafeAreaView, Platform } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { StyleSheet, View, Text, ScrollView, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
+import api from '@/api/axios';
 
 export default function FinanzasScreen() {
-  const stats = {
-    gasto: 45.2,
-    limite: 150.0,
-    ahorroMensual: 85.0
+  const [stats, setStats] = useState({ gasto: 0, limite: 150, ahorroMensual: 0 });
+  const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
+  );
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [statsRes, dietsRes] = await Promise.all([
+        api.get('/api/tracker/daily-stats/'),
+        api.get('/api/diets/recommendations/')
+      ]);
+      
+      setStats({
+        gasto: parseFloat(statsRes.data.gasto_actual || 0),
+        limite: parseFloat(statsRes.data.presupuesto_semanal || 150),
+        ahorroMensual: parseFloat(statsRes.data.presupuesto_semanal || 150) - parseFloat(statsRes.data.gasto_actual || 0) // Proyección simple
+      });
+
+      setRecommendations(dietsRes.data.recommendations || []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const progress = Math.min(100, (stats.gasto / stats.limite) * 100);
+  const progress = Math.min(100, (stats.gasto / (stats.limite || 1)) * 100);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -30,24 +58,25 @@ export default function FinanzasScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Estadísticas</Text>
+        <Text style={styles.sectionTitle}>Dietas Recomendadas</Text>
 
-        <View style={styles.statGrid}>
-          <View style={styles.statBox}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="trending-up" size={24} color="#00D09E" />
+        {loading ? (
+          <ActivityIndicator size="large" color="#00D09E" />
+        ) : recommendations.length === 0 ? (
+          <Text style={styles.infoText}>No hay dietas que se ajusten a tu presupuesto.</Text>
+        ) : (
+          recommendations.map((diet, index) => (
+            <View key={index} style={styles.dietCard}>
+              <View style={styles.dietInfo}>
+                <Text style={styles.dietTitle}>{diet.nombre}</Text>
+                <Text style={styles.dietDetails}>{diet.calorias_totales} Kcal</Text>
+              </View>
+              <View style={styles.dietPriceBox}>
+                <Text style={styles.dietPrice}>S/ {diet.costo_estimado}</Text>
+              </View>
             </View>
-            <Text style={styles.statTitle}>S/ {stats.ahorroMensual.toFixed(2)}</Text>
-            <Text style={styles.statSub}>Ahorro Mensual Proyectado</Text>
-          </View>
-          <View style={styles.statBox}>
-            <View style={[styles.iconCircle, { backgroundColor: '#F3F4F6' }]}>
-              <Ionicons name="cart" size={24} color="#6B7280" />
-            </View>
-            <Text style={styles.statTitle}>-25%</Text>
-            <Text style={styles.statSub}>Promedio descuento vs Lima</Text>
-          </View>
-        </View>
+          ))
+        )}
 
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
@@ -81,8 +110,14 @@ const styles = StyleSheet.create({
   iconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   statTitle: { fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 4 },
   statSub: { fontSize: 12, color: '#6B7280', lineHeight: 16 },
-  infoCard: { backgroundColor: '#EFF6FF', borderRadius: 16, padding: 16 },
+  infoCard: { backgroundColor: '#EFF6FF', borderRadius: 16, padding: 16, marginTop: 24 },
   infoHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   infoTitle: { color: '#1E3A8A', fontWeight: '700', fontSize: 15, marginLeft: 8 },
-  infoText: { color: '#1E3A8A', fontSize: 13, lineHeight: 20, opacity: 0.8 }
+  infoText: { color: '#1E3A8A', fontSize: 13, lineHeight: 20, opacity: 0.8 },
+  dietCard: { flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2, alignItems: 'center' },
+  dietInfo: { flex: 1 },
+  dietTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  dietDetails: { fontSize: 13, color: '#6B7280' },
+  dietPriceBox: { backgroundColor: '#ECFDF5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  dietPrice: { color: '#00D09E', fontWeight: '700', fontSize: 15 }
 });

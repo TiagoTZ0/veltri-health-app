@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=veltri_db
+      - POSTGRES_USER=veltri_user
+      - POSTGRES_PASSWORD=veltri_pass
+    ports:
+      - "5432:5432"
+
+  web:
+    build: ./backend
+    command: /app/entrypoint.sh
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=veltri_db
+      - DB_USER=veltri_user
+      - DB_PASSWORD=veltri_pass
+      # El ML mock está en el host (localhost del host = host.docker.internal para Mac/Windows)
+      - ML_API_URL=http://host.docker.internal:8001/predict/
+    depends_on:
+      - db
+
+  # Si tienes un servicio ML en el futuro, se puede descomentar esto:
+  # ml_mock:
+  #   image: python:3.11-slim
+  #   command: python -m http.server 8001
+  #   ports:
+  #     - "8001:8001"
+
+volumes:
+  postgres_data:

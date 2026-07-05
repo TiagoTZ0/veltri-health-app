@@ -60,6 +60,12 @@ export default function TabLayout() {
           href: null, // Ocultar explore
         }}
       />
+      <Tabs.Screen
+        name="search"
+        options={{
+          href: null, // Ocultar search del bottom tab
+        }}
+      />
     </Tabs>
   );
 }

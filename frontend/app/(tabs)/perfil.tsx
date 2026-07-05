@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Platform, ScrollView, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import { useFocusEffect } from 'expo-router';
+import api from '@/api/axios';
 
 export default function PerfilScreen() {
+  const { logout } = useAuth();
+  const [profileData, setProfileData] = useState<any>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
+
+  const fetchProfile = async () => {
+    try {
+      const response = await api.get('/api/users/profile/');
+      setProfileData(response.data);
+    } catch (error) {
+      console.error('Error fetching profile', error);
+    }
+  };
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
@@ -15,8 +35,8 @@ export default function PerfilScreen() {
             <Text style={styles.avatarText}>MV</Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>MVP User</Text>
-            <Text style={styles.profileSub}>Bajar de peso • 75kg</Text>
+            <Text style={styles.profileName}>{profileData?.username || 'Cargando...'}</Text>
+            <Text style={styles.profileSub}>{profileData?.perfilusuario?.objetivo_salud || 'Objetivo'} • {profileData?.perfilusuario?.peso_actual || '-'}kg</Text>
           </View>
           <TouchableOpacity style={styles.editBtn}>
             <Ionicons name="pencil" size={18} color="#00D09E" />
@@ -47,7 +67,7 @@ export default function PerfilScreen() {
               <Ionicons name="wallet" size={20} color="#10B981" />
             </View>
             <Text style={styles.menuText}>Ajustar Presupuesto Límite</Text>
-            <Text style={styles.menuBadge}>S/ 150</Text>
+            <Text style={styles.menuBadge}>S/ {profileData?.perfilusuario?.presupuesto_semanal_limite || '0'}</Text>
             <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
           </TouchableOpacity>
         </View>
@@ -73,7 +93,7 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
 

@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, ActivityIndicator, Alert, SafeAreaView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, ActivityIndicator, Alert, SafeAreaView, Platform, ScrollView, TextInput } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-
-const API_BASE_URL = 'http://127.0.0.1:8000/api/diets';
+import { router, useLocalSearchParams } from 'expo-router';
+import api from '@/api/axios';
 
 export default function ScanScreen() {
+  const { meal } = useLocalSearchParams<{ meal?: string }>();
+  const tipoComida = (meal as string) || 'Almuerzo';
+
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<any>(null);
+  const [gramos, setGramos] = useState('150');
+  const [saving, setSaving] = useState(false);
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -60,27 +64,36 @@ export default function ScanScreen() {
     } as any);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/scan/`, {
-        method: 'POST',
+      const response = await api.post(`/api/scanner/analyze/`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        body: formData,
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Error escaneando');
-      
-      setScanResult(data);
+      setScanResult(response.data);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'No se pudo analizar la imagen.');
+      Alert.alert('Error', error.response?.data?.error || 'No se pudo analizar la imagen.');
       setImageUri(null);
     } finally {
       setScanning(false);
     }
   };
 
-  const saveToDiary = () => {
-    Alert.alert('Éxito', 'Alimento guardado en tu diario');
-    router.replace('/');
+  const saveToDiary = async () => {
+    if (!scanResult || !scanResult.food_id) return;
+    setSaving(true);
+    try {
+      await api.post('/api/tracker/log-food/', {
+        food_id: scanResult.food_id,
+        cantidad_gramos: parseFloat(gramos),
+        tipo_comida: tipoComida,   // Usa el tipo de comida correcto según desde dónde vino
+        costo_estimado: scanResult.economics?.base_price * (parseFloat(gramos) / 1000)
+      });
+      Alert.alert('Éxito', `Alimento guardado en ${tipoComida}`);
+      router.replace('/(tabs)/');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo guardar el registro');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -134,34 +147,31 @@ export default function ScanScreen() {
 
                 <View style={styles.nutritionRow}>
                   <View style={styles.nutriBox}>
-                    <Text style={styles.nutriVal}>{scanResult.nutrition?.total_kcal?.toFixed(0)}</Text>
-                    <Text style={styles.nutriLabel}>Kcal</Text>
+                    <Text style={styles.nutriVal}>{Math.round((scanResult.nutrition_per_100g?.kcal || 0) * (parseFloat(gramos || '0') / 100))}</Text>
+                    <Text style={styles.nutriLabel}>Kcal Totales</Text>
                   </View>
                   <View style={styles.nutriDivider} />
                   <View style={styles.nutriBox}>
-                    <Text style={styles.nutriVal}>150g</Text>
-                    <Text style={styles.nutriLabel}>Porción</Text>
+                    <TextInput 
+                      style={styles.gramosInput}
+                      value={gramos}
+                      onChangeText={setGramos}
+                      keyboardType="numeric"
+                    />
+                    <Text style={styles.nutriLabel}>Porción (g)</Text>
                   </View>
                 </View>
 
                 <View style={styles.priceSection}>
-                  <Text style={styles.sectionTitle}>Análisis de Mercado (Trujillo)</Text>
+                  <Text style={styles.sectionTitle}>Análisis de Mercado</Text>
                   <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Precio Supermercado / Lima:</Text>
-                    <Text style={styles.priceStrike}>S/ {scanResult.economics?.base_price_lima?.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.priceRow}>
-                    <Text style={styles.priceLabel}>Precio Estimado Local:</Text>
-                    <Text style={styles.priceBest}>S/ {scanResult.economics?.local_price_estimated?.toFixed(2)}</Text>
-                  </View>
-                  <View style={styles.savingsBox}>
-                    <Ionicons name="trending-down" size={16} color="#00D09E" style={{ marginRight: 4 }} />
-                    <Text style={styles.savingsText}>Ahorras S/ {scanResult.economics?.savings_vs_lima?.toFixed(2)} comprando local</Text>
+                    <Text style={styles.priceLabel}>Precio Estimado:</Text>
+                    <Text style={styles.priceBest}>S/ {((scanResult.economics?.base_price || 0) * (parseFloat(gramos || '0') / 1000)).toFixed(2)}</Text>
                   </View>
                 </View>
 
-                <TouchableOpacity style={styles.saveBtn} onPress={saveToDiary}>
-                  <Text style={styles.saveBtnText}>Guardar en Diario</Text>
+                <TouchableOpacity style={styles.saveBtn} onPress={saveToDiary} disabled={saving}>
+                  {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Guardar en Diario</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.retakeBtn} onPress={() => setImageUri(null)}>
                   <Text style={styles.retakeBtnText}>Volver a escanear</Text>
@@ -215,5 +225,6 @@ const styles = StyleSheet.create({
   saveBtn: { backgroundColor: '#00D09E', paddingVertical: 16, borderRadius: 16, alignItems: 'center', marginBottom: 12 },
   saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   retakeBtn: { paddingVertical: 16, alignItems: 'center' },
-  retakeBtnText: { color: '#6B7280', fontSize: 16, fontWeight: '600' }
+  retakeBtnText: { color: '#6B7280', fontSize: 16, fontWeight: '600' },
+  gramosInput: { fontSize: 24, fontWeight: '800', color: '#111827', borderBottomWidth: 1, borderColor: '#E5E7EB', minWidth: 60, textAlign: 'center' }
 });
