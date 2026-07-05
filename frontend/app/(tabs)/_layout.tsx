@@ -26,14 +26,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scan"
         options={{
-          title: 'Scan IA',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.scanButtonContainer}>
-              <View style={[styles.scanButton, focused && styles.scanButtonActive]}>
-                <Ionicons name="scan-outline" size={28} color="#fff" />
-              </View>
-            </View>
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen
