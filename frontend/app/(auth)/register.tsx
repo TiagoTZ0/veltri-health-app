@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { Link } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api/axios';
+import { setItemAsync } from '@/utils/storage';
 
 export default function RegisterScreen() {
   const [step, setStep] = useState(1);
@@ -103,14 +104,22 @@ export default function RegisterScreen() {
           username,
           password
         });
-        const { access } = loginResponse.data;
+        const { access, refresh } = loginResponse.data;
         if (access) {
+          if (refresh) {
+            await setItemAsync('refresh_token', refresh);
+          }
           await login(access);
         }
       }
     } catch (error: any) {
-      console.log(error.response?.data);
-      Alert.alert('Error', 'No se pudo crear la cuenta. Verifica tus datos.');
+      console.log('Error de registro:', error.response?.data || error.message);
+      const msg = 'No se pudo crear la cuenta. Verifica tus datos o asegúrate de que el backend esté corriendo.';
+      if (Platform.OS === 'web') {
+        window.alert('Error: ' + msg);
+      } else {
+        Alert.alert('Error', msg);
+      }
     } finally {
       setLoading(false);
     }

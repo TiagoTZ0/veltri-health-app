@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { setItemAsync } from '@/utils/storage';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api/axios';
 
@@ -29,7 +29,7 @@ export default function LoginScreen() {
       if (access) {
         // Guardar ambos tokens para poder refrescar la sesión automáticamente
         if (refresh) {
-          await SecureStore.setItemAsync('refresh_token', refresh);
+          await setItemAsync('refresh_token', refresh);
         }
         await login(access);
       }
