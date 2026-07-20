@@ -49,7 +49,7 @@ services:
     name: veltri-frontend
     env: node
     rootDir: frontend
-    buildCommand: "npm ci && npx expo export"
+    buildCommand: "echo 'Skipping build, using pre-built dist folder'"
     startCommand: "npx serve dist -s -p $PORT"
     region: oregon
     autoDeploy: true
