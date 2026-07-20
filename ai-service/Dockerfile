@@ -2,11 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+<<<<<<< HEAD
 # Instalar dependencias del sistema
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
+=======
+
+>>>>>>> 977e700947722edfe2bf79ce6a981f9e1689205d
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

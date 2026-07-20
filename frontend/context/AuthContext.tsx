@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { getItemAsync, setItemAsync, deleteItemAsync } from '../utils/storage';
 import { useRouter, useSegments } from 'expo-router';
 
 type AuthContextType = {
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check if token exists in SecureStore on app load
     const loadToken = async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync('access_token');
+        const storedToken = await getItemAsync('access_token');
         if (storedToken) {
           setToken(storedToken);
         }
@@ -50,13 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token, segments, isLoading]);
 
   const login = async (newToken: string) => {
-    await SecureStore.setItemAsync('access_token', newToken);
+    await setItemAsync('access_token', newToken);
     setToken(newToken);
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync('access_token');
-    await SecureStore.deleteItemAsync('refresh_token');
+    await deleteItemAsync('access_token');
+    await deleteItemAsync('refresh_token');
     setToken(null);
   };
 

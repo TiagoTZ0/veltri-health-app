@@ -1,12 +1,16 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { getItemAsync, setItemAsync, deleteItemAsync } from '../utils/storage';
 import { router } from 'expo-router';
+import { Platform } from 'react-native';
 
 // Configura EXPO_PUBLIC_API_URL en tu .env para dispositivo físico o producción
 // Ejemplo: EXPO_PUBLIC_API_URL=http://192.168.1.X:8000
 // Para emulador Android: http://10.0.2.2:8000
 // Para emulador iOS:     http://localhost:8000
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8000';
+let BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.2.2:8000';
+if (Platform.OS === 'web' && BASE_URL.includes('10.0.2.2')) {
+  BASE_URL = 'http://127.0.0.1:8000';
+}
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -16,7 +20,7 @@ const api = axios.create({
 // --- Interceptor de REQUEST: agrega el access token ---
 api.interceptors.request.use(
   async (config) => {
-    const token = await SecureStore.getItemAsync('access_token');
+    const token = await getItemAsync('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -62,7 +66,7 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync('refresh_token');
+        const refreshToken = await getItemAsync('refresh_token');
         if (!refreshToken) throw new Error('No refresh token');
 
         const res = await axios.post(`${BASE_URL}/api/users/token/refresh/`, {
@@ -70,7 +74,7 @@ api.interceptors.response.use(
         });
 
         const newAccessToken: string = res.data.access;
-        await SecureStore.setItemAsync('access_token', newAccessToken);
+        await setItemAsync('access_token', newAccessToken);
         processQueue(null, newAccessToken);
 
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
@@ -78,8 +82,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         // Si el refresh también falla, cerrar sesión
-        await SecureStore.deleteItemAsync('access_token');
-        await SecureStore.deleteItemAsync('refresh_token');
+        await deleteItemAsync('access_token');
+        await deleteItemAsync('refresh_token');
         router.replace('/login' as any);
         return Promise.reject(refreshError);
       } finally {

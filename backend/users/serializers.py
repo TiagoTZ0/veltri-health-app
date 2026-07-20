@@ -5,7 +5,7 @@ from .models import PerfilUsuario
 class PerfilUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = PerfilUsuario
-        fields = ['edad', 'peso_actual', 'altura', 'objetivo_salud', 'presupuesto_semanal_limite', 'meta_calorica_diaria']
+        fields = ['genero', 'edad', 'peso_actual', 'altura', 'objetivo_salud', 'presupuesto_semanal_limite', 'meta_calorica_diaria']
 
 class UserSerializer(serializers.ModelSerializer):
     perfilusuario = PerfilUsuarioSerializer()

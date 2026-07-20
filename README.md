@@ -4,29 +4,14 @@ Proyecto fullstack con backend en Django y frontend en Expo (React Native). Esta
 
 ## 1. Cómo correrlo
 
-### Backend (Django)
+### Backend, Base de Datos y Servicio de IA (Docker)
 
-1. Abre una terminal en la carpeta raíz del proyecto y dirígete al backend:
+1. Abre una terminal en la carpeta raíz del proyecto.
+2. Construye y levanta los contenedores con Docker Compose:
    ```bash
-   cd backend
+   docker-compose up --build
    ```
-2. Activa el entorno virtual. Si usas Windows (PowerShell):
-   ```powershell
-   .\venv\Scripts\Activate.ps1
-   ```
-   *(Si no existe, créalo con `python -m venv venv` y actívalo).*
-3. Instala las dependencias:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Aplica las migraciones a la base de datos (SQLite por defecto):
-   ```bash
-   python manage.py migrate
-   ```
-5. Inicia el servidor de desarrollo:
-   ```bash
-   python manage.py runserver
-   ```
+   *Esto iniciará la base de datos PostgreSQL, el servicio de IA y el backend de Django, aplicando las migraciones automáticamente.*
    El backend estará disponible en `http://127.0.0.1:8000/`.
 
 ### Frontend (Expo / React Native)

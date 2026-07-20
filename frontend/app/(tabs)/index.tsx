@@ -21,28 +21,32 @@ export default function DiarioScreen() {
 
   React.useEffect(() => {
     (async () => {
-      const perms = await Notifications.getPermissionsAsync() as any;
-      let finalGranted = perms.granted || perms.status === 'granted';
-      if (!finalGranted) {
-        const req = await Notifications.requestPermissionsAsync() as any;
-        finalGranted = req.granted || req.status === 'granted';
-      }
-      if (finalGranted) {
-        // Programar recordatorio de agua cada 2 horas si no hay ya uno
-        const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-        if (scheduled.length === 0) {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: '¡Hora de hidratarte! 💧',
-              body: 'Toma un vaso de agua para mantenerte saludable y cumplir tu meta.',
-            },
-            trigger: {
-              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-              seconds: 60 * 60 * 2, // 2 horas
-              repeats: true,
-            },
-          });
+      try {
+        const perms = await Notifications.getPermissionsAsync() as any;
+        let finalGranted = perms.granted || perms.status === 'granted';
+        if (!finalGranted) {
+          const req = await Notifications.requestPermissionsAsync() as any;
+          finalGranted = req.granted || req.status === 'granted';
         }
+        if (finalGranted) {
+          // Programar recordatorio de agua cada 2 horas si no hay ya uno
+          const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+          if (scheduled.length === 0) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: '¡Hora de hidratarte! 💧',
+                body: 'Toma un vaso de agua para mantenerte saludable y cumplir tu meta.',
+              },
+              trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                seconds: 60 * 60 * 2, // 2 horas
+                repeats: true,
+              },
+            });
+          }
+        }
+      } catch (e) {
+        console.log('Notifications not supported or failed to init:', e);
       }
     })();
   }, []);
@@ -110,9 +114,9 @@ export default function DiarioScreen() {
     proteinas: stats?.metas_macros?.proteinas || 120,
     grasas: stats?.metas_macros?.grasas || 65,
   };
-  const carboPct = Math.min(100, macroGoals.carbohidratos > 0 ? (macros.carbohidratos / macroGoals.carbohidratos) * 100 : 0);
-  const proteinPct = Math.min(100, macroGoals.proteinas > 0 ? (macros.proteinas / macroGoals.proteinas) * 100 : 0);
-  const fatPct = Math.min(100, macroGoals.grasas > 0 ? (macros.grasas / macroGoals.grasas) * 100 : 0);
+  const carboPct = Math.min(100, macroGoals.carbohidratos > 0 ? ((macros?.carbohidratos || 0) / macroGoals.carbohidratos) * 100 : 0) || 0;
+  const proteinPct = Math.min(100, macroGoals.proteinas > 0 ? ((macros?.proteinas || 0) / macroGoals.proteinas) * 100 : 0) || 0;
+  const fatPct = Math.min(100, macroGoals.grasas > 0 ? ((macros?.grasas || 0) / macroGoals.grasas) * 100 : 0) || 0;
 
 
   return (
@@ -164,21 +168,21 @@ export default function DiarioScreen() {
               <View style={[styles.macroBarBg, { backgroundColor: '#E0F2FE' }]}>
                 <View style={[styles.macroBarFill, { width: `${carboPct}%`, backgroundColor: '#0EA5E9' }]} />
               </View>
-              <Text style={styles.macroValue}>{Math.round(macros.carbohidratos)}g / {macroGoals.carbohidratos}g</Text>
+              <Text style={styles.macroValue}>{Math.round(macros?.carbohidratos || 0)}g / {macroGoals.carbohidratos}g</Text>
             </View>
             <View style={styles.macroBox}>
               <Text style={styles.macroTitle}>Proteínas</Text>
               <View style={[styles.macroBarBg, { backgroundColor: '#FCE7F3' }]}>
                 <View style={[styles.macroBarFill, { width: `${proteinPct}%`, backgroundColor: '#EC4899' }]} />
               </View>
-              <Text style={styles.macroValue}>{Math.round(macros.proteinas)}g / {macroGoals.proteinas}g</Text>
+              <Text style={styles.macroValue}>{Math.round(macros?.proteinas || 0)}g / {macroGoals.proteinas}g</Text>
             </View>
             <View style={styles.macroBox}>
               <Text style={styles.macroTitle}>Grasas</Text>
               <View style={[styles.macroBarBg, { backgroundColor: '#FEF3C7' }]}>
                 <View style={[styles.macroBarFill, { width: `${fatPct}%`, backgroundColor: '#F59E0B' }]} />
               </View>
-              <Text style={styles.macroValue}>{Math.round(macros.grasas)}g / {macroGoals.grasas}g</Text>
+              <Text style={styles.macroValue}>{Math.round(macros?.grasas || 0)}g / {macroGoals.grasas}g</Text>
             </View>
           </View>
         </View>

@@ -23,7 +23,12 @@ class PerfilUsuario(models.Model):
         ('ganar_masa', 'Ganar masa muscular'),
         ('mantener', 'Mantener peso')
     ]
+    GENEROS = [
+        ('M', 'Masculino'),
+        ('F', 'Femenino'),
+    ]
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    genero = models.CharField(max_length=1, choices=GENEROS, null=True, blank=True)
     edad = models.IntegerField(null=True, blank=True)
     peso_actual = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     altura = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
