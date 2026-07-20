@@ -5,7 +5,7 @@ services:
     dockerfilePath: backend/Dockerfile
     region: oregon
     autoDeploy: true
-    plan: starter
+    plan: free
     envVars:
       - key: SECRET_KEY
         value: "__REPLACE_WITH_SECRET__"
@@ -40,7 +40,7 @@ services:
     dockerfilePath: ai-service/Dockerfile
     region: oregon
     autoDeploy: true
-    plan: starter
+    plan: free
     envVars:
       - key: MODELS_DIR
         value: "/app/models"
@@ -63,5 +63,5 @@ services:
 databases:
   - name: veltri-db
     databaseName: veltri
-    plan: starter
+    plan: free
     region: oregon
