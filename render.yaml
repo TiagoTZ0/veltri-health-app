@@ -2,7 +2,7 @@ services:
   - type: web
     name: veltri-backend
     env: docker
-    dockerfilePath: backend/Dockerfile
+    rootDir: backend
     region: oregon
     autoDeploy: true
     plan: free
@@ -37,7 +37,7 @@ services:
   - type: web
     name: veltri-ai-service
     env: docker
-    dockerfilePath: ai-service/Dockerfile
+    rootDir: ai-service
     region: oregon
     autoDeploy: true
     plan: free
