@@ -16,17 +16,21 @@ services:
       - key: DATABASE
         value: "postgres"
       - key: DB_USER
-        fromDatabase: true
-        databaseName: veltri-db
+        fromDatabase:
+          name: veltri-db
+          property: user
       - key: DB_PASSWORD
-        fromDatabase: true
-        databaseName: veltri-db
+        fromDatabase:
+          name: veltri-db
+          property: password
       - key: DB_HOST
-        fromDatabase: true
-        databaseName: veltri-db
+        fromDatabase:
+          name: veltri-db
+          property: host
       - key: DB_PORT
-        fromDatabase: true
-        databaseName: veltri-db
+        fromDatabase:
+          name: veltri-db
+          property: port
       - key: DB_NAME
         value: "veltri"
 
@@ -58,6 +62,6 @@ services:
 
 databases:
   - name: veltri-db
-    engine: postgres
+    databaseName: veltri
     plan: starter
     region: oregon
