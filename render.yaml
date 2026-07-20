@@ -49,12 +49,14 @@ services:
     name: veltri-frontend
     env: node
     rootDir: frontend
-    buildCommand: "npm ci"
-    startCommand: "npm run web"
+    buildCommand: "npm ci && npx expo export"
+    startCommand: "npx serve dist -s -p $PORT"
     region: oregon
     autoDeploy: true
     plan: free
     envVars:
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=400"
       - key: EXPO_PUBLIC_API_URL
         value: "https://veltri-backend.onrender.com"
       - key: EXPO_PUBLIC_AI_URL
