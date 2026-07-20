@@ -1,0 +1,63 @@
+services:
+  - type: web
+    name: veltri-backend
+    env: docker
+    dockerfilePath: backend/Dockerfile
+    region: oregon
+    autoDeploy: true
+    plan: starter
+    envVars:
+      - key: SECRET_KEY
+        value: "__REPLACE_WITH_SECRET__"
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: DATABASE
+        value: "postgres"
+      - key: DB_USER
+        fromDatabase: true
+        databaseName: veltri-db
+      - key: DB_PASSWORD
+        fromDatabase: true
+        databaseName: veltri-db
+      - key: DB_HOST
+        fromDatabase: true
+        databaseName: veltri-db
+      - key: DB_PORT
+        fromDatabase: true
+        databaseName: veltri-db
+      - key: DB_NAME
+        value: "veltri"
+
+  - type: web
+    name: veltri-ai-service
+    env: docker
+    dockerfilePath: ai-service/Dockerfile
+    region: oregon
+    autoDeploy: true
+    plan: starter
+    envVars:
+      - key: MODELS_DIR
+        value: "/app/models"
+
+  - type: web
+    name: veltri-frontend
+    env: node
+    rootDir: frontend
+    buildCommand: "npm ci"
+    startCommand: "npm run web"
+    region: oregon
+    autoDeploy: true
+    plan: free
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        value: "https://veltri-backend.onrender.com"
+      - key: EXPO_PUBLIC_AI_URL
+        value: "https://veltri-ai-service.onrender.com"
+
+databases:
+  - name: veltri-db
+    engine: postgres
+    plan: starter
+    region: oregon
